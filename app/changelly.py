@@ -65,11 +65,11 @@ def send_request_to_changelly(payload):
 
 def create_auth_headers(payload):
     headers = {
-      'api-key': secrets['key'],
+      'api-key': secrets['changelly_key'],
       'sign': generate_signed_payload(payload)
     }
     return headers
 
 def generate_signed_payload(payload):
-    sign = hmac.new(secrets['secret'], json.dumps(payload), hashlib.sha512)
+    sign = hmac.new(secrets['changelly_secret'], json.dumps(payload), hashlib.sha512)
     return sign.hexdigest()
