@@ -16,7 +16,7 @@ min_transaction_amount = 0.005
 def returnBalances():
     return jsonify(get_balances(api.returnTicker()))
 
-@app.route('/api/v1/poloniex/diversifydry')
+@app.route('/api/v1/poloniex/dryrun')
 def deversify_dry():
     return jsonify(diversify())
 
@@ -24,20 +24,21 @@ def deversify_dry():
 def diversify_execute():
     meta = diversify()
     sell = meta['trades']['sell']
+    results = {}
     for ticker, asset_meta in sell.items():
         pair = 'BTC_' + ticker
         print 'selling %s %s at rate %s' % (asset_meta['amount'], ticker, asset_meta['rate'])
-        api.sell(currencyPair=pair, rate=asset_meta['rate'], amount=asset_meta['amount'])
+        results['sell'] = api.sell(currencyPair=pair, rate=asset_meta['rate'], amount=asset_meta['amount'])
         print 'sold'
-        time.sleep(1)
+        time.sleep(.2)
     buy = meta['trades']['buy']
     for ticker, asset_meta in buy.items():
         pair = 'BTC_' + ticker
         print 'buying %s %s at rate %s' % (asset_meta['amount'], ticker, asset_meta['rate'])
-        api.buy(currencyPair=pair, rate=asset_meta['rate'], amount=asset_meta['amount'])
+        results['buy'] = api.buy(currencyPair=pair, rate=asset_meta['rate'], amount=asset_meta['amount'])
         print 'bought'
-        time.sleep(1)
-    return returnBalances()
+        time.sleep(.2)
+    return jsonify(results)
 
 def diversify():
     marketdata = api.returnTicker()
@@ -48,6 +49,7 @@ def diversify():
     target_allocation = btc_sum / len(balances)
     result = {}
     result['balances'] = balances
+    result['min_btc_transaction_amount'] = str(min_transaction_amount)
     result['target_allocation'] = format(target_allocation, '.8f')
     result['trades'] = get_trades(marketdata, balances, target_allocation)
     return result
