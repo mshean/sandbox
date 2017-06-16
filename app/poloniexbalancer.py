@@ -24,14 +24,16 @@ def diversify_execute():
     meta = diversify()
     sell = meta['trades']['sell']
     for ticker, asset_meta in sell.items():
-        print 'selling ' + asset_meta['amount'] + ' ' + ticker + ' at rate ' + asset_meta['price']
-        api.sell('BTC_' + ticker, float(asset_meta['price']), float(asset_meta['amount']))
+        pair = 'BTC_' + ticker
+        print 'selling %s %s at rate %s' % (asset_meta['amount'], ticker, asset_meta['price'])
+        api.sell(pair, asset_meta['amount'], asset_meta['price'])
         print 'sold'
         time.sleep(10)
     buy = meta['trades']['buy']
     for ticker, asset_meta in buy.items():
-        print 'buying ' + asset_meta['amount'] + ' ' + ticker + ' at rate ' + asset_meta['price']
-        api.buy('BTC_' + ticker, float(asset_meta['price']), float(asset_meta['amount']))
+        pair = 'BTC_' + ticker
+        print 'buying %s %s at rate %s' % (asset_meta['amount'], ticker, asset_meta['price'])
+        api.buy(pair, asset_meta['price'], asset_meta['amount'])
         print 'bought'
         time.sleep(10)
     return returnBalances()
@@ -45,7 +47,7 @@ def diversify():
     target_allocation = btc_sum / len(balances)
     result = {}
     result['balances'] = balances
-    result['target_allocation'] = str(target_allocation)
+    result['target_allocation'] = format(target_allocation, '.8f')
     result['trades'] = get_trades(marketdata, balances, target_allocation)
     return result
 
@@ -57,12 +59,12 @@ def get_trades(marketdata, balances, target_allocation):
         diff = target_allocation - float(balance['btc'])
         if abs(diff) > min_transaction_amount and symbol != 'BTC':
             tmp = {}
-            tmp['amount'] = str(abs(diff))
+            tmp['amount'] = format(abs(diff), '.8f')
             if diff > 0:
-                tmp['price'] = str(get_price(marketdata, symbol, abs(diff), 'lowestAsk'))
+                tmp['price'] = get_price(marketdata, symbol, 'lowestAsk')
                 buy[symbol] = tmp
             else:
-                tmp['price'] = str(get_price(marketdata, symbol, abs(diff), 'highestBid'))
+                tmp['price'] = get_price(marketdata, symbol, 'highestBid')
                 sell[symbol] = tmp
     trades['buy'] = buy
     trades['sell'] = sell
@@ -79,18 +81,16 @@ def get_balances(marketdata):
 def get_balance_pair(marketdata, symbol, balance):
     tmp = {}
     tmp['balance'] = balance
-    tmp['btc'] = get_price(marketdata, symbol, balance, 'last')
+    price = get_price(marketdata, symbol, 'last')
+    tmp['btc'] = format(float(price) * float(balance), '.8f')
     return tmp
 
-def get_price(marketdata, symbol, balance, price_type):
+def get_price(marketdata, symbol, price_type):
     if symbol == 'BTC':
-        return balance
+        return 1
     else:
         currencypair = 'BTC_' + symbol;
         try:
-            return str(get_btc_value(marketdata[currencypair][price_type], balance))
+            return marketdata[currencypair][price_type]
         except KeyError, e:
             print 'Price type ' + price_type + ' data not found for currency pair: ' + currencypair
-
-def get_btc_value(price, balance):
-    return float(price) * float(balance)
