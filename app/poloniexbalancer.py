@@ -24,18 +24,18 @@ def deversify_dry():
 def diversify_execute():
     meta = diversify()
     sell = meta['trades']['sell']
-    results = {}
+    results = {'buy': {}, 'sell': {}}
     for ticker, asset_meta in sell.items():
         pair = 'BTC_' + ticker
         print 'selling %s %s at rate %s' % (asset_meta['amount'], ticker, asset_meta['rate'])
-        results['sell'] = api.sell(currencyPair=pair, rate=asset_meta['rate'], amount=asset_meta['amount'])
+        results['sell'][ticker] = api.sell(currencyPair=pair, rate=asset_meta['rate'], amount=asset_meta['amount'])
         print 'sold'
         time.sleep(.2)
     buy = meta['trades']['buy']
     for ticker, asset_meta in buy.items():
         pair = 'BTC_' + ticker
         print 'buying %s %s at rate %s' % (asset_meta['amount'], ticker, asset_meta['rate'])
-        results['buy'] = api.buy(currencyPair=pair, rate=asset_meta['rate'], amount=asset_meta['amount'])
+        results['buy'][ticker] = api.buy(currencyPair=pair, rate=asset_meta['rate'], amount=asset_meta['amount'])
         print 'bought'
         time.sleep(.2)
     return jsonify(results)
@@ -47,31 +47,29 @@ def diversify():
     for symbol, balance in balances.items():
         btc_sum += float(balance['btc'])
     target_allocation = btc_sum / len(balances)
-    result = {}
-    result['balances'] = balances
-    result['min_btc_transaction_amount'] = str(min_transaction_amount)
-    result['target_allocation'] = format(target_allocation, '.8f')
-    result['trades'] = get_trades(marketdata, balances, target_allocation)
+    result = {
+        'balances': balances,
+        'min_btc_transaction_amount': str(min_transaction_amount),
+        'target_allocation': format(target_allocation, '.8f'),
+        'trades': get_trades(marketdata, balances, target_allocation)
+    }
     return result
 
 def get_trades(marketdata, balances, target_allocation):
-    buy = {}
-    sell = {}
-    trades = {}
+    trades = {'buy': {}, 'sell': {}}
     for symbol, balance in balances.items():
         diff = target_allocation - float(balance['btc'])
         if abs(diff) > min_transaction_amount and symbol != 'BTC':
-            tmp = {}
             if diff > 0:
-                tmp['rate'] = get_price(marketdata, symbol, 'lowestAsk')
-                tmp['amount'] = format(abs(diff) / float(tmp['rate']), '.8f')
-                buy[symbol] = tmp
+                trades['buy'][symbol] = {
+                    'rate': get_price(marketdata, symbol, 'lowestAsk'),
+                    'amount': format(abs(diff) / float(tmp['rate']), '.8f')
+                }
             else:
-                tmp['rate'] = get_price(marketdata, symbol, 'highestBid')
-                tmp['amount'] = format(abs(diff) / float(tmp['rate']), '.8f')
-                sell[symbol] = tmp
-    trades['buy'] = buy
-    trades['sell'] = sell
+                trades['buy'][symbol] = {
+                    'rate': get_price(marketdata, symbol, 'highestBid'),
+                    'amount': format(abs(diff) / float(tmp['rate']), '.8f')
+                }
     return trades
 
 def get_balances(marketdata):
