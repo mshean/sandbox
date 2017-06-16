@@ -5,6 +5,7 @@ import urllib2
 import json
 import time
 import hmac,hashlib
+import requests
 
 def createTimeStamp(datestr, format="%Y-%m-%d %H:%M:%S"):
     return time.mktime(time.strptime(datestr, format))
@@ -49,8 +50,8 @@ class poloniex:
                 'Key': self.APIKey
             }
 
-            ret = urllib2.urlopen(urllib2.Request('https://poloniex.com/tradingApi', post_data, headers))
-            jsonRet = json.loads(ret.read())
+            ret = requests.post('https://poloniex.com/tradingApi', data=req, headers=headers)
+            jsonRet = json.loads(ret.text)
             return self.post_process(jsonRet)
 
 
@@ -106,7 +107,7 @@ class poloniex:
     # Outputs: 
     # orderNumber   The order number
     def buy(self,currencyPair,rate,amount):
-        return self.api_query('buy',{"currencyPair":currencyPair,"rate":rate,"amount":amount})
+        return self.api_query('buy',{"currencyPair":currencyPair,"rate":rate,"amount":amount,"fillOrKill":1})
 
     # Places a sell order in a given market. Required POST parameters are "currencyPair", "rate", and "amount". If successful, the method will return the order number.
     # Inputs:
@@ -116,7 +117,7 @@ class poloniex:
     # Outputs: 
     # orderNumber   The order number
     def sell(self,currencyPair,rate,amount):
-        return self.api_query('sell',{"currencyPair":currencyPair,"rate":rate,"amount":amount})
+        return self.api_query('sell',{"currencyPair":currencyPair,"rate":rate,"amount":amount,"fillOrKill":1})
 
     # Cancels an order you have placed in a given market. Required POST parameters are "currencyPair" and "orderNumber".
     # Inputs:

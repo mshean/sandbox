@@ -1,7 +1,8 @@
 import yaml
+import time
 from app import app
 from poloniex import poloniex
-from flask import jsonify, request
+from flask import jsonify
 
 # todo: move these to a secure data store and read from that
 secrets = yaml.load(open('secrets.yaml', 'r'))
@@ -25,17 +26,17 @@ def diversify_execute():
     sell = meta['trades']['sell']
     for ticker, asset_meta in sell.items():
         pair = 'BTC_' + ticker
-        print 'selling %s %s at rate %s' % (asset_meta['amount'], ticker, asset_meta['price'])
-        api.sell(pair, asset_meta['amount'], asset_meta['price'])
+        print 'selling %s %s at rate %s' % (asset_meta['amount'], ticker, asset_meta['rate'])
+        api.sell(currencyPair=pair, rate=asset_meta['rate'], amount=asset_meta['amount'])
         print 'sold'
-        time.sleep(10)
+        time.sleep(1)
     buy = meta['trades']['buy']
     for ticker, asset_meta in buy.items():
         pair = 'BTC_' + ticker
-        print 'buying %s %s at rate %s' % (asset_meta['amount'], ticker, asset_meta['price'])
-        api.buy(pair, asset_meta['price'], asset_meta['amount'])
+        print 'buying %s %s at rate %s' % (asset_meta['amount'], ticker, asset_meta['rate'])
+        api.buy(currencyPair=pair, rate=asset_meta['rate'], amount=asset_meta['amount'])
         print 'bought'
-        time.sleep(10)
+        time.sleep(1)
     return returnBalances()
 
 def diversify():
@@ -59,12 +60,13 @@ def get_trades(marketdata, balances, target_allocation):
         diff = target_allocation - float(balance['btc'])
         if abs(diff) > min_transaction_amount and symbol != 'BTC':
             tmp = {}
-            tmp['amount'] = format(abs(diff), '.8f')
             if diff > 0:
-                tmp['price'] = get_price(marketdata, symbol, 'lowestAsk')
+                tmp['rate'] = get_price(marketdata, symbol, 'lowestAsk')
+                tmp['amount'] = format(abs(diff) / float(tmp['rate']), '.8f')
                 buy[symbol] = tmp
             else:
-                tmp['price'] = get_price(marketdata, symbol, 'highestBid')
+                tmp['rate'] = get_price(marketdata, symbol, 'highestBid')
+                tmp['amount'] = format(abs(diff) / float(tmp['rate']), '.8f')
                 sell[symbol] = tmp
     trades['buy'] = buy
     trades['sell'] = sell
