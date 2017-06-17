@@ -61,14 +61,16 @@ def get_trades(marketdata, balances, target_allocation):
         diff = target_allocation - float(balance['btc'])
         if abs(diff) > min_transaction_amount and symbol != 'BTC':
             if diff > 0:
+                rate = get_price(marketdata, symbol, 'lowestAsk')
                 trades['buy'][symbol] = {
-                    'rate': get_price(marketdata, symbol, 'lowestAsk'),
-                    'amount': format(abs(diff) / float(tmp['rate']), '.8f')
+                    'rate': rate,
+                    'amount': format(abs(diff) / float(rate), '.8f')
                 }
             else:
+                rate = get_price(marketdata, symbol, 'highestBid')
                 trades['buy'][symbol] = {
-                    'rate': get_price(marketdata, symbol, 'highestBid'),
-                    'amount': format(abs(diff) / float(tmp['rate']), '.8f')
+                    'rate': rate,
+                    'amount': format(abs(diff) / float(rate), '.8f')
                 }
     return trades
 
@@ -81,11 +83,11 @@ def get_balances(marketdata):
     return nonZeroBalances
 
 def get_balance_pair(marketdata, symbol, balance):
-    tmp = {}
-    tmp['balance'] = balance
     price = get_price(marketdata, symbol, 'last')
-    tmp['btc'] = format(float(price) * float(balance), '.8f')
-    return tmp
+    return {
+        'balance': balance,
+        'btc': format(float(price) * float(balance), '.8f')
+    }
 
 def get_price(marketdata, symbol, price_type):
     if symbol == 'BTC':
